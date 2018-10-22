@@ -1,0 +1,173 @@
+{
+  "dataset_reader": {
+    "name": "basic_classification_reader",
+    "x": "Text",
+    "y": "theme",
+    "data_path": "/home/dilyara/data/data_files/sber_data/sber_oct2018_data",
+    "train": "rb_0927.csv"
+  },
+  "dataset_iterator": {
+    "name": "basic_classification_iterator",
+    "seed": 42,
+    "field_to_split": "train",
+    "split_fields": [
+      "train",
+      "valid",
+      "test"
+    ],
+    "split_proportions": [
+      0.7,
+      0.15,
+      0.15
+    ]
+  },
+  "chainer": {
+    "in": [
+      "x"
+    ],
+    "in_y": [
+      "y"
+    ],
+    "pipe": [
+      {
+        "id": "classes_vocab",
+        "name": "default_vocab",
+        "fit_on": [
+          "y"
+        ],
+        "level": "token",
+        "save_path": "sber_oct2018/classes.dict",
+        "load_path": "sber_oct2018/classes.dict"
+      },
+      {
+        "in": [
+          "x"
+        ],
+        "out": [
+          "x_lower"
+        ],
+        "id": "my_preprocessor",
+        "name": "str_lower"
+      },
+      {
+        "in": "x_lower",
+        "out": "x_tok",
+        "id": "my_tokenizer",
+        "name": "nltk_tokenizer",
+        "tokenizer": "wordpunct_tokenize"
+      },
+      {
+        "in": [
+          "x_tok"
+        ],
+        "out": [
+          "x_emb"
+        ],
+        "id": "my_embedder",
+        "name": "elmo",
+        "elmo_output_names": [
+          "elmo"
+        ],
+        "mini_batch_size": 8,
+        "spec": "/home/dilyara/data/data_files/embeddings/sber-faq_epoches_n_7/"
+      },
+      {
+        "in": [
+          "x_emb"
+        ],
+        "in_y": [
+          "y"
+        ],
+        "out": [
+          "y_labels",
+          "y_probas_dict"
+        ],
+        "main": true,
+        "name": "keras_classification_model",
+        "save_path": "sber_oct2018/random_init_0",
+        "load_path": "sber_oct2018/random_init_0",
+        "classes": "#classes_vocab.keys()",
+        "embedding_size": "#my_embedder.dim",
+        "confident_threshold": 1,
+        "optimizer": "Adam",
+        "lear_rate": 0.010500596997180275,
+        "lear_rate_decay": 0.013875601379848754,
+        "loss": "binary_crossentropy",
+        "text_size": 60,
+        "dropout_rate": 0.19137887700187253,
+        "last_layer_activation": "softmax",
+        "model_name": "evolved_sber_oct2018_model",
+        "conv_filters_1": 181,
+        "conv_kernel_1": 2,
+        "conv_l2reg_1": 0.0004370386840697515,
+        "cudnnlstm_units_1": 276,
+        "cudnnlstm_l2reg_1": 0.0006717192768687503,
+        "cudnnlstm_units_2": 232,
+        "cudnnlstm_l2reg_2": 0.0008950941473013409,
+        "dense_units_1": 232,
+        "dense_act_1": "relu",
+        "dense_l2reg_1": 0.0008950941473013409,
+        "cudnnlstm_units_3": 328,
+        "cudnnlstm_l2reg_3": 1e-6,
+        "maxpool_size_1": 3,
+        "maxpool_size_2": 3,
+        "att_hid_1": 124,
+        "att_out_1": 151,
+        "att_act_1": "softmax",
+        "conv_filters_2": 441,
+        "conv_kernel_2": 4,
+        "conv_l2reg_2": 0.0003207880372383775
+      }
+    ],
+    "out": [
+      "y_labels",
+      "y_probas_dict"
+    ]
+  },
+  "train": {
+    "epochs": 100,
+    "batch_size": 32,
+    "metric_optimization": "maximize",
+    "metrics": [
+      {
+        "name": "f1_weighted",
+        "inputs": [
+          "y",
+          "y_labels"
+        ]
+      },
+      {
+        "name": "f1_macro",
+        "inputs": [
+          "y",
+          "y_labels"
+        ]
+      },
+      {
+        "name": "classification_roc_auc",
+        "inputs": [
+          "y",
+          "y_probas_dict"
+        ]
+      },
+      {
+        "name": "sets_accuracy",
+        "inputs": [
+          "y",
+          "y_labels"
+        ]
+      }
+    ],
+    "validation_patience": 5,
+    "val_every_n_epochs": 1,
+    "log_every_n_epochs": 1,
+    "show_examples": false,
+    "validate_best": true,
+    "test_best": false
+  },
+  "metadata": {
+    "labels": {
+      "telegram_utils": "IntentModel"
+    }
+  }
+}

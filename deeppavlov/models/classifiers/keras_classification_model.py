@@ -14,7 +14,7 @@
 
 from typing import List, Tuple, Optional
 import numpy as np
-from keras.layers import Dense, Input, concatenate, Activation, Concatenate, Reshape
+from keras.layers import Dense, Input, concatenate, Activation, Concatenate, Reshape, CuDNNLSTM
 from keras.layers.wrappers import Bidirectional
 from keras.layers.recurrent import LSTM, GRU
 from keras.layers.convolutional import Conv1D
@@ -23,6 +23,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import GlobalMaxPooling1D, MaxPooling1D, GlobalAveragePooling1D
 from keras.models import Model
 from keras.regularizers import l2
+from keras import backend as K
 
 from deeppavlov.core.common.errors import ConfigError
 from deeppavlov.core.common.registry import register
@@ -768,5 +769,78 @@ class KerasClassificationModel(KerasModel):
         output = Dense(self.n_classes, activation=None,
                        kernel_regularizer=l2(coef_reg_den))(output)
         act_output = Activation(self.opt.get("last_layer_activation", "sigmoid"))(output)
+        model = Model(inputs=inp, outputs=act_output)
+        return model
+
+    def evolved_sber_oct2018_model(self, **kwargs) -> Model:
+        """
+        Method builds uncompiled model of BiLSTM with self additive attention.
+
+        Args:
+            kwargs: parameters
+
+        Returns:
+            keras.models.Model: uncompiled instance of Keras Model
+        """
+
+        inp = Input(shape=(self.opt['text_size'], self.opt['embedding_size']))
+
+        output1 = Conv1D(filters=kwargs["conv_filters_1"],
+                         kernel_size=kwargs["conv_kernel_1"],
+                         padding="same",
+                         activation=None,
+                         kernel_regularizer=l2(kwargs["conv_l2reg_1"]))(inp)
+
+        output1 = CuDNNLSTM(units=kwargs["cudnnlstm_units_1"],
+                            return_sequences=True,
+                            kernel_regularizer=l2(kwargs["cudnnlstm_l2reg_1"]))(output1)
+
+        output2 = CuDNNLSTM(units=kwargs["cudnnlstm_units_2"],
+                            return_sequences=True,
+                            kernel_regularizer=l2(kwargs["cudnnlstm_l2reg_2"]))(inp)
+
+        output2 = Dense(units=kwargs["dense_units_1"],
+                        activation=kwargs["dense_act_1"],
+                        kernel_regularizer=l2(kwargs["dense_l2reg_1"]))(output2)
+
+        output3 = Bidirectional(CuDNNLSTM(units=kwargs["cudnnlstm_units_3"],
+                                          return_sequences=True,
+                                          kernel_regularizer=l2(kwargs["cudnnlstm_l2reg_3"])))(inp)
+
+        output3_1 = MaxPooling1D(pool_size=kwargs["maxpool_size_1"],
+                                 padding="same")(output3)
+
+        output3_2 = MaxPooling1D(pool_size=kwargs["maxpool_size_2"],
+                                 padding="same")(output3)
+        output3 = Concatenate()([output3_1, output3_2])
+
+        output4 = multiplicative_self_attention(units=inp,
+                                                n_hidden=kwargs["att_hid_1"],
+                                                n_output_features=kwargs["att_out_1"],
+                                                activation=kwargs["att_act_1"])
+
+        output4 = Conv1D(filters=kwargs["conv_filters_2"],
+                         kernel_size=kwargs["conv_kernel_2"],
+                         padding="same",
+                         activation=None,
+                         kernel_regularizer=l2(kwargs["conv_l2reg_2"]))(output4)
+
+        outputs = [output1, output2, output3, output4]
+        try:
+            output = Concatenate()(outputs)
+        except ValueError:
+            # outputs are of 2d and 3d shapes
+            # make them all 2d and concatenate
+            for i in range(len(outputs)):
+                if len(K.int_shape(outputs[i])) == 3:
+                    outputs[i] = GlobalMaxPooling1D()(outputs[i])
+            output = Concatenate(axis=1)(outputs)
+
+        if len(output.shape) == 3:
+            output = GlobalMaxPooling1D()(output)
+
+        output = Dense(self.n_classes, activation=None)(output)
+        act_output = Activation(self.opt.get("last_layer_activation",
+                                             "sigmoid"))(output)
         model = Model(inputs=inp, outputs=act_output)
         return model
