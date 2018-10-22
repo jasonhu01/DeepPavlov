@@ -319,7 +319,7 @@ class TestQuickStart(object):
         if 'IP' in mode:
             config_file_path = str(test_configs_path.joinpath(conf_file))
             install_config(config_file_path)
-            deep_download(['-c', config_file_path])
+            deep_download(config_file_path)
 
             self.interact(test_configs_path / conf_file, model_dir, PARAMS[model][(conf_file, model_dir, mode)])
         else:
@@ -342,7 +342,7 @@ class TestQuickStart(object):
             if 'IP' not in mode:
                 config_path = str(test_configs_path.joinpath(conf_file))
                 install_config(config_path)
-                deep_download(['-c', config_path])
+                deep_download(config_path)
             shutil.rmtree(str(model_path),  ignore_errors=True)
 
             logfile = io.BytesIO(b'')
