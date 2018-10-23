@@ -165,12 +165,6 @@ class SimpleVocabulary(Estimator):
     @staticmethod
     def is_empty(batch):
         non_empty = [item for item in batch if len(item) > 0]
-        self._i2t = []
-        self.count = 0
-
-    @staticmethod
-    def is_empty(batch):
-        non_empty = [item for item in batch if len(item) > 0]
         return len(non_empty) == 0
 
 
