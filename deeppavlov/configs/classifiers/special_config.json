@@ -31,13 +31,13 @@
     "pipe": [
       {
         "id": "classes_vocab",
-        "name": "default_vocab",
+        "name": "simple_vocab",
         "fit_on": [
           "y"
         ],
         "level": "token",
-        "save_path": "sber_oct2018/classes.dict",
-        "load_path": "sber_oct2018/classes.dict"
+        "save_path": "sber_oct2018_2/classes.dict",
+        "load_path": "sber_oct2018_2/classes.dict"
       },
       {
         "in": [
@@ -84,8 +84,8 @@
         ],
         "main": true,
         "name": "keras_classification_model",
-        "save_path": "sber_oct2018/random_init_0",
-        "load_path": "sber_oct2018/random_init_0",
+        "save_path": "sber_oct2018_2/model",
+        "load_path": "sber_oct2018_2/model",
         "classes": "#classes_vocab.keys()",
         "embedding_size": "#my_embedder.dim",
         "confident_threshold": 1,
